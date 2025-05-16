@@ -7,6 +7,7 @@ using Downloads
 # Load the dataset
 df = CSV.read("/Users/lorenzoilari/Library/Mobile Documents/com~apple~CloudDocs/Università/2. Magistrale/Computational/assignment 1/current.csv", DataFrame)
 
+df
 # Clean the DataFrame by removing the row with transformation codes
 df_cleaned = df[2:end, :]
 date_format = "mm/dd/yyyy"
@@ -19,6 +20,24 @@ df_original = coalesce.(df_original, NaN)
 ## Create a DataFrame with the transformation codes
 transformation_codes = DataFrame(Series = names(df)[2:end], 
                                  Transformation_Code = collect(df[1, 2:end]))
+
+# Helper function to lag a series; 
+# Julia does not have a built-in lag function like R or pandas
+function lag(v::Vector, l::Integer)
+    nan = [NaN for _ in 1:l]
+    return [nan; v[1:(end-l)]]
+end
+
+function lead(v::Vector, l::Integer)
+    nan = [NaN for _ in 1:l]
+    return [v[(l+1):end]; nan]
+end
+
+## mdiff function to calculate the first difference of a series
+## keeping the missing values
+function mdiff(v::Vector)
+    return v .- lag(v, 1)
+end
 
 # Function to apply transformations based on the transformation code
 function apply_transformation(series, code)
@@ -48,26 +67,6 @@ function apply_transformation(series, code)
     end
 end
 
-
-# Helper function to lag a series; 
-# Julia does not have a built-in lag function like R or pandas
-function lag(v::Vector, l::Integer)
-    nan = [NaN for _ in 1:l]
-    return [nan; v[1:(end-l)]]
-end
-
-function lead(v::Vector, l::Integer)
-    nan = [NaN for _ in 1:l]
-    return [v[(l+1):end]; nan]
-end
-
-## mdiff function to calculate the first difference of a series
-## keeping the missing values
-function mdiff(v::Vector)
-    return v .- lag(v, 1)
-end
-
-
 # Applying the transformations to each column in df_cleaned based on transformation_codes
 for row in eachrow(transformation_codes)
     series_name = Symbol(row[:Series])
@@ -79,7 +78,7 @@ end
 ## The transformation create missing values at the top
 ## These remove the missing values at the top of the dataframe
 df_cleaned = df_cleaned[3:end, :]
-
+df_cleaned
 # Plotting with customized x-axis ticks
 p1 = plot(df_cleaned.sasdate, df_cleaned.INDPRO, label="Industrial Production", legend=:none, xlabel="Date", ylabel="INDPRO", title="Industrial Production")
 p2 = plot(df_cleaned.sasdate, df_cleaned.CPIAUCSL, label="CPI", legend=:none, xlabel="Date", ylabel="CPIAUCSL", title="Consumer Price Index")
